@@ -7,7 +7,7 @@ services:
       POSTGRES_USER: liteerp
       POSTGRES_PASSWORD: liteerp
     ports:
-      - "5432:5432"
+      - "${POSTGRES_PORT:-5433}:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U liteerp -d liteerp"]
       interval: 5s

@@ -23,6 +23,8 @@ Backend service for Lite ERP.
 docker compose up -d postgres
 ```
 
+By default Postgres is exposed on host port `5433` (container `5432`). Override with `POSTGRES_PORT=5432` if you prefer.
+
 2) Build:
 
 ```bash
@@ -33,6 +35,14 @@ mvn -q -DskipTests package
 
 ```bash
 mvn spring-boot:run
+```
+
+## Capturing logs
+
+Recommended pattern:
+
+```bash
+mvn test | tee logs/mvn-test.log
 ```
 
 ## Endpoints
