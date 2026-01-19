@@ -1,0 +1,40 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: lite-erp-backend
+
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/liteerp}
+    username: ${DB_USERNAME:liteerp}
+    password: ${DB_PASSWORD:liteerp}
+
+  flyway:
+    enabled: true
+
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        format_sql: false
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      probes:
+        enabled: true
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+
+logging:
+  level:
+    root: INFO
