@@ -12,3 +12,7 @@
 
 # Logs
 *.log
+
+# Local logs folder (keep directory via logs/.gitkeep)
+/logs/*
+!/logs/.gitkeep
