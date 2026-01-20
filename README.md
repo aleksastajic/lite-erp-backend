@@ -37,6 +37,15 @@ mvn -q -DskipTests package
 mvn spring-boot:run
 ```
 
+## Run with Docker
+
+Build and run the API + Postgres using Docker Compose:
+
+	docker compose -f docker-compose.app.yml up --build
+
+- API: http://localhost:8080
+- OpenAPI UI: http://localhost:8080/swagger-ui.html
+
 ## Capturing logs
 
 Recommended pattern:
@@ -60,4 +69,7 @@ mvn test -Ddocker.api.version=1.44
 
 - Health: `GET /actuator/health`
 - OpenAPI UI: `GET /swagger-ui.html`
-# lite-erp-backend
+
+## CI
+
+GitHub Actions runs `mvn test` (with Testcontainers) and validates the Docker build.
