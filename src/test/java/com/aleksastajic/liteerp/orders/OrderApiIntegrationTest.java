@@ -3,6 +3,8 @@ package com.aleksastajic.liteerp.orders;
 import com.aleksastajic.liteerp.orders.api.dto.OrderCreateItemRequest;
 import com.aleksastajic.liteerp.orders.api.dto.OrderCreateRequest;
 import com.aleksastajic.liteerp.orders.api.dto.OrderResponse;
+import com.aleksastajic.liteerp.inventory.InventoryMovement;
+import com.aleksastajic.liteerp.inventory.InventoryMovementRepository;
 import com.aleksastajic.liteerp.products.Product;
 import com.aleksastajic.liteerp.products.ProductRepository;
 import org.junit.jupiter.api.Test;
@@ -47,6 +49,9 @@ class OrderApiIntegrationTest {
     @Autowired
     ProductRepository productRepository;
 
+    @Autowired
+    InventoryMovementRepository inventoryMovementRepository;
+
     @Test
     void createAndReadOrder() {
         Product p = new Product();
@@ -54,6 +59,12 @@ class OrderApiIntegrationTest {
         p.setName("Order Product");
         p.setPrice(new BigDecimal("9.9900"));
         p = productRepository.save(p);
+
+        InventoryMovement seed = new InventoryMovement();
+        seed.setProductId(p.getId());
+        seed.setQty(10);
+        seed.setReason("seed");
+        inventoryMovementRepository.save(seed);
 
         OrderCreateRequest create = new OrderCreateRequest(
                 "CUST-1",
