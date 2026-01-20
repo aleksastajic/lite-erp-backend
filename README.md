@@ -1,21 +1,36 @@
-# Lite ERP (backend)
+# Lite ERP Backend
 
-Backend service for Lite ERP.
+Lite ERP is a small Spring Boot backend that demonstrates common ERP primitives (products, orders, inventory) with safe data rules and integration tests.
 
-## Tech
+## What’s included
 
-- Java 17, Spring Boot 3.x, Maven
-- PostgreSQL, Flyway, JPA/Hibernate
-- Testcontainers (Postgres) for integration tests (added later)
-- OpenAPI UI via springdoc
-- Structured JSON logs (logback)
+- Products: create, get, list
+- Orders: create (with stock checks), get, list items (pagination)
+- Inventory: append-only movements + stock aggregation
+- Analytics: top products + revenue per day
+- OpenAPI UI: swagger UI for exploration
+- Problem Details (RFC 7807): consistent error responses
+
+## Tech stack
+
+- Java 17, Spring Boot 3.3.x, Maven
+- PostgreSQL 16 + Flyway migrations
+- JPA/Hibernate for domain persistence
+- Testcontainers (Postgres) for integration tests
+- springdoc OpenAPI UI
+
+## Data conventions
+
+- Primary keys are UUIDs.
+- Money is stored as `NUMERIC(19,4)` and serialized as strings with 4 decimals (for example `"9.9900"`).
+- Inventory movements are append-only (no updates/deletes).
 
 ## Prerequisites
 
 - Java 17
-- Docker + Docker Compose
+- Docker + Docker Compose (required for integration tests)
 
-## Run locally
+## Quickstart (local)
 
 1) Start Postgres:
 
@@ -25,39 +40,62 @@ docker compose up -d postgres
 
 By default Postgres is exposed on host port `5433` (container `5432`). Override with `POSTGRES_PORT=5432` if you prefer.
 
-2) Build:
-
-```bash
-mvn -q -DskipTests package
-```
-
-3) Run:
+2) Run the API:
 
 ```bash
 mvn spring-boot:run
 ```
 
-## Capturing logs
+## Quickstart (Docker)
 
-Recommended pattern:
+Run API + Postgres together:
+
+```bash
+docker compose -f docker-compose.app.yml up --build
+```
+
+## Configuration
+
+The application reads DB configuration from environment variables:
+
+- `DB_URL` (default: `jdbc:postgresql://localhost:5433/liteerp`)
+- `DB_USERNAME` (default: `liteerp`)
+- `DB_PASSWORD` (default: `liteerp`)
+
+## API
+
+- Health: `GET /actuator/health`
+- OpenAPI UI: `GET /swagger-ui.html`
+
+Core routes:
+
+- `POST /products`
+- `GET /products`
+- `GET /products/{id}`
+- `GET /products/{id}/stock`
+- `POST /orders`
+- `GET /orders/{id}`
+- `GET /orders/{id}/items?page=0&size=20`
+- `GET /analytics/top-products?from=2026-01-01&to=2026-01-31&limit=10`
+
+## Testing
+
+Recommended pattern for capturing output:
 
 ```bash
 mvn test | tee logs/mvn-test.log
 ```
 
-## Testcontainers integration tests
-
-Integration tests use Testcontainers. If Docker is not available, they will be skipped.
-
-On newer Docker Engine versions (e.g. Docker Engine 29+) the daemon requires Docker API version **>= 1.44**.
-If you see errors mentioning an API version like `client version 1.32 is too old` when running `mvn test`, run tests with an explicit API version (this configures the docker-java `api.version` used by Testcontainers):
+On newer Docker Engine versions (for example Docker Engine 29+), docker-java may require a higher API version. If you see errors like `client version 1.32 is too old`, run:
 
 ```bash
 mvn test -Ddocker.api.version=1.44
 ```
 
-## Endpoints
+## CI
 
-- Health: `GET /actuator/health`
-- OpenAPI UI: `GET /swagger-ui.html`
-# lite-erp-backend
+GitHub Actions runs `mvn test` (with Testcontainers) and validates the Docker image build.
+
+## Project structure
+
+See `STRUCTURE.md` for a guided tree and key entrypoints.
