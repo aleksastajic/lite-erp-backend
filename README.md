@@ -45,6 +45,17 @@ Recommended pattern:
 mvn test | tee logs/mvn-test.log
 ```
 
+## Testcontainers integration tests
+
+Integration tests use Testcontainers. If Docker is not available, they will be skipped.
+
+On newer Docker Engine versions (e.g. Docker Engine 29+) the daemon requires Docker API version **>= 1.44**.
+If you see errors mentioning an API version like `client version 1.32 is too old` when running `mvn test`, run tests with an explicit API version (this configures the docker-java `api.version` used by Testcontainers):
+
+```bash
+mvn test -Ddocker.api.version=1.44
+```
+
 ## Endpoints
 
 - Health: `GET /actuator/health`

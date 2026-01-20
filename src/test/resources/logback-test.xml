@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+  <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+    <encoder>
+      <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} -- %msg%n</pattern>
+    </encoder>
+  </appender>
+
+  <!--
+    Testcontainers "disabledWithoutDocker" still triggers a Docker availability check,
+    which can log at ERROR when the local Docker API is too old.
+    We keep tests passing but avoid scary/incorrect ERROR output.
+
+    NOTE: Logback cannot "downgrade" an ERROR log event to WARN (it can only filter).
+    So we suppress these specific loggers during tests.
+  -->
+  <logger name="org.testcontainers.dockerclient.DockerClientProviderStrategy" level="WARN"/>
+  <logger name="org.testcontainers.dockerclient.DockerMachineClientProviderStrategy" level="WARN"/>
+  <logger name="org.testcontainers.dockerclient.DockerDesktopClientProviderStrategy" level="WARN"/>
+  <logger name="org.testcontainers.dockerclient" level="WARN"/>
+
+  <root level="INFO">
+    <appender-ref ref="CONSOLE"/>
+  </root>
+</configuration>

@@ -8,6 +8,8 @@ import com.aleksastajic.liteerp.orders.api.dto.OrderCreateItemRequest;
 import com.aleksastajic.liteerp.orders.api.dto.OrderCreateRequest;
 import com.aleksastajic.liteerp.orders.api.dto.OrderResponse;
 import com.aleksastajic.liteerp.products.ProductRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,17 +28,20 @@ import java.util.UUID;
 public class OrderService {
 
     private final OrderRepository orderRepository;
+    private final OrderItemRepository orderItemRepository;
     private final ProductRepository productRepository;
     private final InventoryService inventoryService;
     private final InventoryMovementRepository inventoryMovementRepository;
 
     public OrderService(
             OrderRepository orderRepository,
+            OrderItemRepository orderItemRepository,
             ProductRepository productRepository,
             InventoryService inventoryService,
             InventoryMovementRepository inventoryMovementRepository
     ) {
         this.orderRepository = orderRepository;
+        this.orderItemRepository = orderItemRepository;
         this.productRepository = productRepository;
         this.inventoryService = inventoryService;
         this.inventoryMovementRepository = inventoryMovementRepository;
@@ -111,5 +116,14 @@ public class OrderService {
         Order order = orderRepository.findWithItemsById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "order not found"));
         return OrderResponse.from(order);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<com.aleksastajic.liteerp.orders.api.dto.OrderItemResponse> listItems(UUID orderId, Pageable pageable) {
+        if (!orderRepository.existsById(orderId)) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "order not found");
+        }
+        return orderItemRepository.findByOrder_Id(orderId, pageable)
+                .map(com.aleksastajic.liteerp.orders.api.dto.OrderItemResponse::from);
     }
 }
