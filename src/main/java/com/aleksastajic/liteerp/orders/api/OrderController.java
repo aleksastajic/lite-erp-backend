@@ -2,8 +2,11 @@ package com.aleksastajic.liteerp.orders.api;
 
 import com.aleksastajic.liteerp.orders.OrderService;
 import com.aleksastajic.liteerp.orders.api.dto.OrderCreateRequest;
+import com.aleksastajic.liteerp.orders.api.dto.OrderItemResponse;
 import com.aleksastajic.liteerp.orders.api.dto.OrderResponse;
 import jakarta.validation.Valid;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -34,5 +37,10 @@ public class OrderController {
     @GetMapping("/{id}")
     public OrderResponse get(@PathVariable UUID id) {
         return orderService.get(id);
+    }
+
+    @GetMapping("/{id}/items")
+    public Page<OrderItemResponse> listItems(@PathVariable UUID id, Pageable pageable) {
+        return orderService.listItems(id, pageable);
     }
 }
