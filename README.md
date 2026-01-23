@@ -2,6 +2,19 @@
 
 Lite ERP is a small Spring Boot backend that demonstrates common ERP primitives (products, orders, inventory) with safe data rules and integration tests.
 
+TL;DR
+Lite ERP backend showcasing products, orders, append-only inventory movements, and analytics built with Java 17 + Spring Boot and validated with Testcontainers integration tests.
+
+## Highlights for recruiters
+- Domain focus: append-only inventory movements with stock aggregation and safe order creation with stock checks.
+- Comprehensive integration test coverage: products, stock API, orders, concurrency, pagination, and analytics.
+- Production-oriented conventions: Flyway migrations, Docker multi-stage build, and numeric money handling (NUMERIC(19,4)).
+
+## What I learned
+- Designing append-only schemas for auditability and easier temporal reasoning.
+- Handling financial values precisely (NUMERIC + string serialization) and tests that validate formatting.
+- Using Testcontainers to provide reliable integration tests for DB-dependent behavior.
+
 ## What’s included
 
 - Products: create, get, list
