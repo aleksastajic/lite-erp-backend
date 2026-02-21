@@ -1,101 +1,209 @@
 # Lite ERP Backend
 
-Lite ERP is a small Spring Boot backend that demonstrates common ERP primitives (products, orders, inventory) with safe data rules and integration tests.
+## 1) Overview
 
-## What’s included
+Lite ERP is a small Spring Boot backend that models products, stock, and orders.
+It is built to demonstrate basic data rules, transactions, and integration testing.
+
+## Requirements
+
+- Java 17 (for local run)
+- Docker (for integration tests via Testcontainers)
+- Docker Compose (optional, for local Postgres and the Docker quickstart)
+
+## 2) Core domain
 
 - Products: create, get, list
-- Orders: create (with stock checks), get, list items (pagination)
-- Inventory: append-only movements + stock aggregation
-- Analytics: top products + revenue per day
-- OpenAPI UI: swagger UI for exploration
-- Problem Details (RFC 7807): consistent error responses
+- Inventory: stock computed from append-only movements
+- Orders: create with stock checks, get, list items (pagination)
 
-## Tech stack
+Analytics is also included (top products and revenue per day).
 
-- Java 17, Spring Boot 3.3.x, Maven
-- PostgreSQL 16 + Flyway migrations
-- JPA/Hibernate for domain persistence
-- Testcontainers (Postgres) for integration tests
-- springdoc OpenAPI UI
+## 3) Data model approach
 
-## Data conventions
+Primary keys are UUIDs.
+Money is stored as `NUMERIC(19,4)` and serialized as strings like `"9.9900"`.
 
-- Primary keys are UUIDs.
-- Money is stored as `NUMERIC(19,4)` and serialized as strings with 4 decimals (for example `"9.9900"`).
-- Inventory movements are append-only (no updates/deletes).
+### Append-only stock movements
 
-## Prerequisites
+Stock is not stored as a mutable counter.
+Instead, the `inventory_movements` table stores deltas (+in, -out).
+Current stock is computed by summing movements per product.
 
-- Java 17
-- Docker + Docker Compose (required for integration tests)
+This is used to keep an audit trail and avoid silent stock edits.
+Updates/deletes are blocked at the DB level for `inventory_movements` (trigger-enforced).
 
-## Quickstart (local)
+## 4) Quickstart
 
-1) Start Postgres:
+The database schema is created and validated via Flyway migrations on startup.
 
-```bash
-docker compose up -d postgres
-```
+### Option A: Docker Compose (preferred)
 
-By default Postgres is exposed on host port `5433` (container `5432`). Override with `POSTGRES_PORT=5432` if you prefer.
-
-2) Run the API:
-
-```bash
-mvn spring-boot:run
-```
-
-## Quickstart (Docker)
-
-Run API + Postgres together:
+Build and run API + Postgres:
 
 ```bash
 docker compose -f docker-compose.app.yml up --build
 ```
 
-## Configuration
+API is on `http://localhost:8080`.
+Postgres is exposed on host port `5433` by default.
 
-The application reads DB configuration from environment variables:
+Verify it is running:
+
+- Swagger UI: `http://localhost:8080/swagger-ui.html`
+- Actuator health: `http://localhost:8080/actuator/health`
+
+Stop:
+
+```bash
+docker compose -f docker-compose.app.yml down
+```
+
+### Option B: Local run (Maven + Postgres)
+
+Start Postgres:
+
+```bash
+docker compose up -d postgres
+```
+
+Run the API:
+
+```bash
+mvn spring-boot:run
+```
+
+Verify it is running:
+
+- Swagger UI: `http://localhost:8080/swagger-ui.html`
+- Actuator health: `http://localhost:8080/actuator/health`
+
+DB connection defaults (override with env vars if needed):
 
 - `DB_URL` (default: `jdbc:postgresql://localhost:5433/liteerp`)
 - `DB_USERNAME` (default: `liteerp`)
 - `DB_PASSWORD` (default: `liteerp`)
 
-## API
+## 5) Demo (2 minutes)
 
-- Health: `GET /actuator/health`
-- OpenAPI UI: `GET /swagger-ui.html`
+This repo does not currently expose an HTTP endpoint to create inventory movements.
+For a quick demo, seed stock via SQL (from inside the Postgres container).
 
-Core routes:
+1) Open Swagger UI:
 
-- `POST /products`
-- `GET /products`
-- `GET /products/{id}`
-- `GET /products/{id}/stock`
-- `POST /orders`
-- `GET /orders/{id}`
-- `GET /orders/{id}/items?page=0&size=20`
-- `GET /analytics/top-products?from=2026-01-01&to=2026-01-31&limit=10`
+- `http://localhost:8080/swagger-ui.html`
 
-## Testing
+2) Create a product:
 
-Recommended pattern for capturing output:
+- Call `POST /products` with:
+
+```json
+{ "sku": "SKU-DEMO-1", "name": "Demo Product", "price": "9.9900" }
+```
+
+Copy the returned `id` as `PRODUCT_ID`.
+
+Tip: set it as a shell variable so substitution is explicit:
+
+```bash
+PRODUCT_ID="<paste-uuid-here>"
+```
+
+3) Verify stock is initially zero:
+
+- Call `GET /products/{id}/stock`
+
+4) Try to create an order (should fail with conflict):
+
+- Call `POST /orders` with:
+
+```json
+{
+  "customerRef": "CUST-DEMO",
+  "items": [
+    { "productId": "PRODUCT_ID", "qty": 1, "unitPrice": "9.9900" }
+  ]
+}
+```
+
+Replace `PRODUCT_ID` with the real UUID.
+
+You should get `409 Conflict` (insufficient stock).
+
+5) Seed stock (+10) via SQL:
+
+```bash
+docker compose -f docker-compose.app.yml exec -T postgres psql -U liteerp -d liteerp \
+	-c "insert into inventory_movements(product_id, qty, reason) values ('PRODUCT_ID', 10, 'seed');"
+```
+
+If you started only Postgres with `docker-compose.yml` (Option B), use:
+
+```bash
+docker compose exec -T postgres psql -U liteerp -d liteerp \
+	-c "insert into inventory_movements(product_id, qty, reason) values ('PRODUCT_ID', 10, 'seed');"
+```
+
+6) Create the order again (should succeed):
+
+- Call `POST /orders` again with the same payload.
+- Then call `GET /products/{id}/stock` to see stock decrease.
+
+7) (Optional) Analytics:
+
+Use a date range that includes “today” (UTC) and call:
+
+- `GET /analytics/top-products?from=YYYY-MM-DD&to=YYYY-MM-DD&limit=10`
+
+## 6) OpenAPI / API docs
+
+- Swagger UI: `http://localhost:8080/swagger-ui.html`
+
+If you need the raw OpenAPI JSON, try Springdoc’s default:
+
+- `http://localhost:8080/v3/api-docs`
+
+## 7) Tests
+
+Run all tests:
+
+```bash
+mvn test
+```
+
+Integration tests use Testcontainers (Postgres).
+They are annotated with `@Testcontainers(disabledWithoutDocker = true)`.
+
+Helpful when capturing logs:
 
 ```bash
 mvn test | tee logs/mvn-test.log
 ```
 
-On newer Docker Engine versions (for example Docker Engine 29+), docker-java may require a higher API version. If you see errors like `client version 1.32 is too old`, run:
+## 8) Troubleshooting
+
+### DB connection / ports
+
+- Postgres defaults to host port `5433` (see `docker-compose.yml`).
+- If you have Postgres on `5432`, set `POSTGRES_PORT=5432` before `docker compose up`.
+- For local runs, override with `DB_URL`, `DB_USERNAME`, `DB_PASSWORD`.
+
+### Flyway migrations
+
+Flyway runs automatically on startup.
+If the app fails early, check API logs for migration errors.
+
+### Testcontainers / Docker API version
+
+On newer Docker Engine versions, docker-java may require a higher API version.
+If you see an error like “client version … is too old”, run:
 
 ```bash
 mvn test -Ddocker.api.version=1.44
 ```
 
-## CI
+## 9) Roadmap (optional)
 
-GitHub Actions runs `mvn test` (with Testcontainers) and validates the Docker image build.
-
-## Project structure
-
-See `STRUCTURE.md` for a guided tree and key entrypoints.
+- Add an HTTP endpoint for inventory movements (so seeding stock is not SQL-only).
+- Add a small, repeatable demo script (curl + DB seed).
+- Expand analytics coverage with more scenarios.
